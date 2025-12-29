@@ -1,111 +1,20 @@
-/*import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
-import { useEffect, useState } from "react";
-import { Picker } from "@react-native-picker/picker";
-
-export default function TransactionForm({ onSubmit, initialData }) {
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-
-  useEffect(() => {
-    if (initialData) {
-      setAmount(String(initialData.amount || ""));
-      setType(initialData.type || "");
-      setCategory(initialData.category || "");
-      setDescription(initialData.description || "");
-    }
-  }, [initialData]);
-
-  const handleSubmit = () => {
-    if (!amount || !type || !category) {
-      Alert.alert("All fields are required");
-      return;
-    }
-
-const transaction = {
-  type: type.trim(),
-  amount: Number(amount),
-  category: category.trim(),
-  description: description.trim(),
-  date: new Date()
-};
-
-    console.log("Submitting transaction:", transaction);
-
-    onSubmit(transaction);
-
-    setAmount("");
-    setType("");
-    setCategory("");
-    setDescription("");
-  };
-
-  return (
-    <View style={styles.container}>
-      <TextInput placeholder="Amount" value={amount} onChangeText={setAmount} style={styles.input} keyboardType="numeric"/>
-
-
-
-<Picker
-  selectedValue={type}
-  onValueChange={setType}
-  style={styles.input}
->
-  <Picker.Item label="Transaction Type" value="" />
-  
-  <Picker.Item label="Income" value="income" />
-  <Picker.Item label="Expense" value="expense" />
-</Picker>
-
-
-
-
-      
-      <TextInput placeholder="Category" value={category} onChangeText={setCategory} style={styles.input}/>
-      <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input}/>
-      <Button title={initialData ? "Update Transaction" : "Add Transaction"} onPress={handleSubmit}/>
-    </View>
-  );
-}
-
-
-
-const styles = StyleSheet.create({
-  container: { marginBottom: 20 },
-
-  input: {
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    marginBottom: 8,
-    borderRadius: 5,
-    height: 48,
-    backgroundColor: "#f2ededff",
-    color: "#000",
-  },
-
-  picker: {
-    borderWidth: 10,
-    borderColor: "#000",
-  //  borderRadius: 5,
-    marginBottom: 8,
-    height: 28,
-    backgroundColor: "#833838ff",
-   
-  },
-});
-*/
-
+// Import basic React Native components and hooks
 import { View, Text, TextInput, Button, StyleSheet, Alert, Pressable } from "react-native";
 import { useEffect, useState } from "react";
 import { Picker } from "@react-native-picker/picker";
 
+// TransactionForm component: used to add or edit a transaction
+// Props:
+// - onSubmit: function to call when user submits the form
+// - initialData: optional, pre-filled data when editing a transaction
 export default function TransactionForm({ onSubmit, initialData }) {
+  // 🔹 State variables to hold form input values
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
 
+  // 🔹 Fill form if editing an existing transaction
   useEffect(() => {
     if (initialData) {
       setAmount(String(initialData.amount || ""));
@@ -115,20 +24,24 @@ export default function TransactionForm({ onSubmit, initialData }) {
     }
   }, [initialData]);
 
+  // 🔹 Handle form submission
   const handleSubmit = () => {
+    // ✅ Validate required fields
     if (!amount || !type || !category) {
       Alert.alert("All fields are required");
       return;
     }
 
+    // ✅ Call the parent function with form data
     onSubmit({
       type,
       amount: Number(amount),
       category,
       description,
-      date: new Date(),
+      date: new Date(), // record current date
     });
 
+    // ✅ Reset form fields after submission
     setAmount("");
     setType("");
     setCategory("");
@@ -137,7 +50,7 @@ export default function TransactionForm({ onSubmit, initialData }) {
 
   return (
     <View style={styles.container}>
-      {/* Amount */}
+      {/* 🔹 Amount Input */}
       <TextInput
         placeholder="Amount"
         value={amount}
@@ -146,8 +59,9 @@ export default function TransactionForm({ onSubmit, initialData }) {
         style={styles.input}
       />
 
-      {/* Transaction Type (TextInput look + Picker dropdown) */}
+      {/* 🔹 Transaction Type Picker disguised as input */}
       <View style={styles.dropdownWrapper}>
+        {/* Show selected type or placeholder */}
         <Text style={[styles.dropdownText, !type && styles.placeholder]}>
           {type === "income"
             ? "Income"
@@ -156,7 +70,7 @@ export default function TransactionForm({ onSubmit, initialData }) {
             : "Transaction Type"}
         </Text>
 
-        {/* Invisible Picker */}
+        {/* Invisible Picker on top to select type */}
         <Picker
           selectedValue={type}
           onValueChange={(val) => setType(val)}
@@ -168,7 +82,7 @@ export default function TransactionForm({ onSubmit, initialData }) {
         </Picker>
       </View>
 
-      {/* Category */}
+      {/* 🔹 Category Input */}
       <TextInput
         placeholder="Category"
         value={category}
@@ -176,7 +90,7 @@ export default function TransactionForm({ onSubmit, initialData }) {
         style={styles.input}
       />
 
-      {/* Description */}
+      {/* 🔹 Description Input */}
       <TextInput
         placeholder="Description"
         value={description}
@@ -184,6 +98,7 @@ export default function TransactionForm({ onSubmit, initialData }) {
         style={styles.input}
       />
 
+      {/* 🔹 Submit Button */}
       <Button
         title={initialData ? "Update Transaction" : "Add Transaction"}
         onPress={handleSubmit}
@@ -192,12 +107,13 @@ export default function TransactionForm({ onSubmit, initialData }) {
   );
 }
 
+// 🔹 STYLES
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
   },
 
-  /* 🔹 COMMON INPUT STYLE */
+  // 🔹 Common style for all text inputs
   input: {
     height: 48,
     borderWidth: 1,
@@ -209,7 +125,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
 
-  /* 🔹 DROPDOWN LOOKS EXACTLY LIKE INPUT */
+  // 🔹 Wrapper for picker that looks like a text input
   dropdownWrapper: {
     height: 48,
     borderWidth: 1,
@@ -221,16 +137,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2ededff",
   },
 
+  // 🔹 Text showing selected value or placeholder
   dropdownText: {
     fontSize: 16,
     color: "#000",
   },
 
+  // 🔹 Placeholder style when no value is selected
   placeholder: {
     color: "#888",
   },
 
-  /* 🔹 INVISIBLE PICKER OVER INPUT */
+  // 🔹 Make the Picker invisible but clickable
   hiddenPicker: {
     position: "absolute",
     width: "100%",

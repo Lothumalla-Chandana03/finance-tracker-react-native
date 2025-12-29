@@ -7,52 +7,86 @@ import {
   RefreshControl,
   Button,
 } from "react-native";
+
+// React hooks for state and lifecycle handling
 import { useState, useCallback } from "react";
+
+// Expo Router hooks
 import { useFocusEffect, useRouter } from "expo-router";
+
+// Local storage for offline transactions & auth token
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Transaction card UI component
 import TransCard from "../../components/TransCard";
+
+// API function to fetch transactions from backend
 import { fetchTransactions } from "../../services/api";
+
+// Context to know whether API mode is ON or OFF
 import { useApiToggle } from "../../contexts/ApiToggleContext";
 
 export default function Dashboard() {
+  // Get API toggle value (true = API, false = local storage)
   const { useAPI } = useApiToggle();
+
+  // Router used for navigation (logout → login screen)
   const router = useRouter();
 
+  // ---------------- STATE VARIABLES ----------------
+
+  // Store all transactions
   const [transactions, setTransactions] = useState([]);
+
+  // Store calculated totals
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
+
+  // Count number of income & expense transactions
   const [incomeCount, setIncomeCount] = useState(0);
   const [expenseCount, setExpenseCount] = useState(0);
+
+  // Used for pull-to-refresh loader
   const [refreshing, setRefreshing] = useState(false);
 
-  // ---------------- Load Transactions ----------------
+  // ---------------- LOAD TRANSACTIONS ----------------
+  // This function loads data either from API or local storage
   const loadTransactions = async () => {
     if (useAPI) {
+      // 🔹 API MODE
       try {
-        const tx = await fetchTransactions();
-        setTransactions(tx);
-        calculateTotals(tx);
+        const tx = await fetchTransactions(); // fetch from backend
+        setTransactions(tx);                  // save to state
+        calculateTotals(tx);                  // calculate totals
       } catch (err) {
         console.log("API fetch failed:", err.message);
         Alert.alert("API fetch failed");
       }
     } else {
+      // 🔹 LOCAL STORAGE MODE
       const data = await AsyncStorage.getItem("transactions");
       const list = data ? JSON.parse(data) : [];
+
+      // Filter out invalid or broken transaction objects
       const validTransactions = Array.isArray(list)
         ? list.filter((tx) => tx && tx.category && tx.amount && tx.type)
         : [];
+
       setTransactions(validTransactions);
       calculateTotals(validTransactions);
     }
   };
 
+  // ---------------- SCREEN FOCUS EFFECT ----------------
+  // Runs every time the Dashboard screen is opened or focused
   useFocusEffect(
     useCallback(() => {
       loadTransactions();
-    }, [useAPI])
+    }, [useAPI]) // reload when API toggle changes
   );
 
+  // ---------------- CALCULATE TOTALS ----------------
+  // Calculates income, expense, and transaction counts
   const calculateTotals = (list) => {
     let income = 0,
       expense = 0,
@@ -61,10 +95,12 @@ export default function Dashboard() {
 
     list.forEach((tx) => {
       const amount = Number(tx.amount || 0);
+
       if (tx.type === "income") {
         income += amount;
         incomeC++;
       }
+
       if (tx.type === "expense") {
         expense += amount;
         expenseC++;
@@ -77,17 +113,22 @@ export default function Dashboard() {
     setExpenseCount(expenseC);
   };
 
+  // Calculate balance
   const balance = totalIncome - totalExpense;
+
+  // Get only last 3 transactions (latest first)
   const lastThreeTransactions = [...transactions].slice(-3).reverse();
 
-  // ---------------- Pull-to-refresh ----------------
+  // ---------------- PULL TO REFRESH ----------------
+  // Reloads data when user pulls down
   const onRefresh = async () => {
     setRefreshing(true);
     await loadTransactions();
     setRefreshing(false);
   };
 
-  // ---------------- Sign Out ----------------
+  // ---------------- SIGN OUT ----------------
+  // Clears token and redirects to login screen
   const handleSignOut = async () => {
     await AsyncStorage.removeItem("token");
     router.replace("/login");
@@ -95,36 +136,38 @@ export default function Dashboard() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* 🔹 FIXED HEADER */}
+      {/* 🔹 FIXED HEADER (same as Home screen) */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Finance Tracker</Text>
         <Button title="Sign Out" onPress={handleSignOut} color="red" />
       </View>
 
-      {/* 🔹 SCROLLABLE CONTENT */}
+      {/* 🔹 SCROLLABLE DASHBOARD CONTENT */}
       <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* TOTAL SUMMARY */}
+        {/* TOTAL INCOME */}
         <View style={[styles.card, styles.incomeCard]}>
           <Text>Total Income</Text>
           <Text style={styles.amount}>₹ {totalIncome}</Text>
         </View>
 
+        {/* TOTAL EXPENSE */}
         <View style={[styles.card, styles.expenseCard]}>
           <Text>Total Expense</Text>
           <Text style={styles.amount}>₹ {totalExpense}</Text>
         </View>
 
+        {/* BALANCE */}
         <View style={[styles.card, styles.balanceCard]}>
           <Text>Balance</Text>
           <Text style={styles.amount}>₹ {balance}</Text>
         </View>
 
-        {/* SAVINGS INDICATOR */}
+        {/* SAVINGS / OVERSPENDING INDICATOR */}
         <View
           style={[
             styles.card,
@@ -142,10 +185,12 @@ export default function Dashboard() {
             <Text>Total</Text>
             <Text style={styles.amount}>{transactions.length}</Text>
           </View>
+
           <View style={[styles.smallCard, styles.incomeCard]}>
             <Text>Income</Text>
             <Text style={styles.amount}>{incomeCount}</Text>
           </View>
+
           <View style={[styles.smallCard, styles.expenseCard]}>
             <Text>Expense</Text>
             <Text style={styles.amount}>{expenseCount}</Text>
@@ -167,45 +212,3 @@ export default function Dashboard() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
-
-  /* 🔹 HEADER SAME AS HOME */
-  header: {
-    height: 60,
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-
-  title: { fontSize: 22, fontWeight: "bold" },
-  subTitle: { fontSize: 18, marginVertical: 10 },
-
-  card: { padding: 16, borderRadius: 10, marginBottom: 10},
-  smallCard: { flex: 1, padding: 12, borderRadius: 10, alignItems: "center" },
-  row: { flexDirection: "row", gap: 10, marginBottom: 10 },
-
-  incomeCard: { backgroundColor: "#d4f8e8" },
-  expenseCard: { backgroundColor: "#f8d4d4" },
-  balanceCard: { backgroundColor: "#d4e6f8" },
-  savingCard: { backgroundColor: "#c8f7c5" },
-  overSpendCard: { backgroundColor: "#ffd6d6" },
-
-  amount: { fontSize: 18, fontWeight: "bold" },
-});

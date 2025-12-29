@@ -1,3 +1,6 @@
+// SafeAreaView keeps UI away from notch, status bar, and bottom gestures
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import {
   View,
   ScrollView,
@@ -8,159 +11,190 @@ import {
   Button,
   StyleSheet,
 } from "react-native";
+
+// React hooks for state and lifecycle
 import { useEffect, useState } from "react";
+
+// AsyncStorage for saving token and offline transactions
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Expo Router for navigation
 import { useRouter } from "expo-router";
 
+// Used to decode JWT token and get user ID
+import { jwtDecode } from "jwt-decode";
+
+// Form component for adding/updating transactions
 import TransactionForm from "../../components/TransactionForm";
+
+// Card component to display each transaction
 import TransactionCard from "../../components/TransactionCard";
 
+// API functions for backend operations
 import {
   fetchTransactions,
   addTransactionAPI,
   updateTransactionAPI,
   deleteTransactionAPI,
 } from "../../services/api";
+
+// Context to toggle between API mode and local storage mode
 import { useApiToggle } from "../../contexts/ApiToggleContext";
 
 export default function Home() {
-  const { useAPI, setUseAPI } = useApiToggle();
+  // Router used for redirecting to login on logout
   const router = useRouter();
 
+  // Get API toggle state from context
+  const { useAPI, setUseAPI } = useApiToggle();
+
+  // ---------------- STATE VARIABLES ----------------
+
+  // Stores all transactions
   const [transactions, setTransactions] = useState([]);
+
+  // Holds transaction being edited (null = add mode)
   const [editTx, setEditTx] = useState(null);
+
+  // Search text for filtering transactions
   const [search, setSearch] = useState("");
 
-  // ---------------- Load Transactions ----------------
+  // Logged-in user ID (decoded from token)
+  const [userId, setUserId] = useState(null);
+
+  // ---------------- LOAD USER & TRANSACTIONS ----------------
   useEffect(() => {
     (async () => {
+      // Get token from storage
       const token = await AsyncStorage.getItem("token");
+
+      // If token missing → force login
       if (!token) {
         Alert.alert("Please login first");
         router.replace("/login");
         return;
       }
 
+      // Decode token to extract user ID
+      const decoded = jwtDecode(token);
+      const uid = decoded.id;
+
+      // Save user ID in state
+      setUserId(uid);
+
       try {
-        if (useAPI) await fetchFromAPI();
-        else await loadLocalTransactions();
+        // If API mode ON → fetch from backend
+        if (useAPI) {
+          const data = await fetchTransactions(uid);
+          setTransactions(data || []);
+        }
+        // If API mode OFF → load from local storage
+        else {
+          const local = await AsyncStorage.getItem("transactions");
+          setTransactions(local ? JSON.parse(local) : []);
+        }
       } catch (err) {
-        console.log("TRANSACTION LOAD ERROR:", err);
         Alert.alert("Failed to load transactions");
       }
     })();
-  }, [useAPI]);
+  }, [useAPI]); // Reload when API toggle changes
 
-  const loadLocalTransactions = async () => {
-    const data = await AsyncStorage.getItem("transactions");
-    setTransactions(data ? JSON.parse(data) : []);
-  };
-
-  const saveLocalTransactions = async (list) => {
-    setTransactions(list);
-    await AsyncStorage.setItem("transactions", JSON.stringify(list));
-  };
-
-  const fetchFromAPI = async () => {
-    try {
-      const data = await fetchTransactions();
-      setTransactions(data || []);
-    } catch (err) {
-      console.log("Fetch error:", err.message);
-      Alert.alert("Failed to fetch transactions");
-    }
-  };
-
-  // ---------------- Add / Update ----------------
+  // ---------------- ADD / UPDATE TRANSACTION ----------------
   const handleAddOrUpdate = async (tx) => {
+    if (!userId) return;
+
+    // Attach userId to transaction
+    const txWithUser = { ...tx, userId };
+
     try {
       if (useAPI) {
+        // API update or add
         if (editTx) {
-          await updateTransactionAPI(editTx._id, tx);
+          await updateTransactionAPI(editTx._id, txWithUser);
           setEditTx(null);
         } else {
-          await addTransactionAPI(tx);
+          await addTransactionAPI(txWithUser);
         }
-        await fetchFromAPI();
+
+        // Refresh list from backend
+        const data = await fetchTransactions(userId);
+        setTransactions(data || []);
       } else {
-        let list = [...transactions];
-        if (editTx) {
-          const index = list.findIndex((t) => t === editTx);
-          list[index] = tx;
-          setEditTx(null);
-        } else {
-          list.push(tx);
-        }
-        saveLocalTransactions(list);
+        // Local storage update or add
+        const list = editTx
+          ? transactions.map((t) => (t === editTx ? txWithUser : t))
+          : [...transactions, txWithUser];
+
+        setTransactions(list);
+        await AsyncStorage.setItem("transactions", JSON.stringify(list));
+        setEditTx(null);
       }
-    } catch (err) {
-      console.log("Add/Update error:", err.message);
+    } catch {
       Alert.alert("Transaction failed");
     }
   };
 
-  // ---------------- Delete ----------------
+  // ---------------- DELETE TRANSACTION ----------------
   const handleDelete = async (tx) => {
-    try {
-      if (useAPI) {
-        await deleteTransactionAPI(tx._id);
-        await fetchFromAPI();
-      } else {
-        const list = transactions.filter((item) => item !== tx);
-        saveLocalTransactions(list);
-      }
-    } catch (err) {
-      console.log("Delete error:", err.message);
-      Alert.alert("Delete failed");
+    if (useAPI) {
+      // Delete from backend
+      await deleteTransactionAPI(tx._id);
+      const data = await fetchTransactions(userId);
+      setTransactions(data || []);
+    } else {
+      // Delete from local storage
+      const list = transactions.filter((t) => t !== tx);
+      setTransactions(list);
+      await AsyncStorage.setItem("transactions", JSON.stringify(list));
     }
   };
 
-  // ---------------- Filter ----------------
+  // ---------------- SIGN OUT ----------------
+  const handleSignOut = async () => {
+    // Remove token and redirect to login
+    await AsyncStorage.removeItem("token");
+    router.replace("/login");
+  };
+
+  // ---------------- SEARCH FILTER ----------------
+  // Filters transactions based on category or description
   const filteredTransactions = transactions.filter(
     (tx) =>
       tx.category?.toLowerCase().includes(search.toLowerCase()) ||
       tx.description?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ---------------- Sign Out ----------------
-  const handleSignOut = async () => {
-    await AsyncStorage.removeItem("token");
-    router.replace("/login");
-  };
-
   return (
-    <View style={{ flex: 1 }}>
-      {/* 🔹 FIXED HEADER */}
+    <SafeAreaView style={{ flex: 1 }}>
+      {/* 🔹 HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Finance Tracker</Text>
-        <Button title="Sign Out" onPress={handleSignOut} color="red" />
+        <Button title="Sign Out" onPress={handleSignOut} color="#ff3b30" />
       </View>
 
-      {/* 🔹 SCROLLABLE CONTENT */}
+      {/* 🔹 MAIN CONTENT */}
       <ScrollView contentContainerStyle={styles.content}>
         {/* API Toggle */}
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-          <Text style={{ marginRight: 10 }}>Use API:</Text>
+        <View style={styles.toggleRow}>
+          <Text>Use API</Text>
           <Switch value={useAPI} onValueChange={setUseAPI} />
         </View>
 
-        {/* Form */}
-        <TransactionForm onSubmit={handleAddOrUpdate} initialData={editTx} />
+        {/* Add / Edit Transaction Form */}
+        <TransactionForm
+          onSubmit={handleAddOrUpdate}
+          initialData={editTx}
+        />
 
-        {/* Search */}
+        {/* Search Input */}
         <TextInput
           placeholder="Search by category or description"
           value={search}
           onChangeText={setSearch}
-          style={{
-            borderWidth: 1,
-            padding: 8,
-            marginVertical: 10,
-            borderRadius: 5,
-          }}
+          style={styles.search}
         />
 
-        {/* List */}
+        {/* Transaction List */}
         {filteredTransactions.map((tx) => (
           <TransactionCard
             key={tx._id}
@@ -170,32 +204,6 @@ export default function Home() {
           />
         ))}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    height: 60,
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  content: {
-    padding: 10,
-    paddingTop: 10,
-  },
-});
