@@ -2,25 +2,25 @@
   "expo": {
     "name": "finance-tracker-RN",
     "slug": "finance-tracker-RN",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.chandana03.financetrackerRN"
+    },
     "version": "1.0.0",
     "orientation": "portrait",
-
     "scheme": "financetrackerrn",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE"
-
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
-    },
     "web": {
-      "output": "static"    },
+      "output": "static"
+    },
     "plugins": [
       "expo-router",
       [
