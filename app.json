@@ -1,11 +1,16 @@
-{
+/*{
   "expo": {
-    "name": "finance-tracker-RN",
+      "name": "finance-tracker-RN",
     "slug": "finance-tracker-RN",
     "android": {
+      "permissions": ["NOTIFICATIONS"],
+      "useNextNotificationsApi": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
-      },
+      }
+
+    },
+
       "splash": {
          "image": "./assets/images/splash-icon.png",
            "resizeMode": "contain",
@@ -44,6 +49,66 @@
       "expo-localization",
       "@react-native-community/datetimepicker"
     ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+
+}*/
+
+{
+  "expo": {
+    "name": "finance-tracker-RN",
+    "slug": "finance-tracker-RN",
+
+    "android": {
+      "package": "com.chandana03.financetrackerRN",
+      "permissions": ["NOTIFICATIONS"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.jpeg",
+        "backgroundColor": "#E6F4FE"
+      }
+    },
+
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "financetrackerrn",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "web": {
+      "output": "static"
+    },
+
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      "expo-localization",
+      "@react-native-community/datetimepicker"
+    ],
+
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
