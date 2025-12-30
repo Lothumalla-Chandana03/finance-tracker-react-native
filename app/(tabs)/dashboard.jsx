@@ -212,3 +212,79 @@ export default function Dashboard() {
     </View>
   );
 }
+
+
+
+const styles = StyleSheet.create({
+  /* HEADER */
+  header: {
+    height: 60,
+    backgroundColor: "#007AFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+
+  /* MAIN CONTAINER */
+  container: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+
+  /* CARDS */
+  card: {
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+
+  smallCard: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  /* COLORS */
+  incomeCard: {
+    backgroundColor: "#d4f8d4",
+  },
+  expenseCard: {
+    backgroundColor: "#ffd6d6",
+  },
+  balanceCard: {
+    backgroundColor: "#e0e0ff",
+  },
+  savingCard: {
+    backgroundColor: "#c8f7c5",
+  },
+  overSpendCard: {
+    backgroundColor: "#ffcccc",
+  },
+
+  /* TEXT */
+  amount: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 6,
+  },
+
+  subTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 12,
+  },
+
+  /* ROW */
+  row: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+});

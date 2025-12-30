@@ -6,6 +6,12 @@
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
       },
+      "splash": {
+         "image": "./assets/images/splash-icon.png",
+           "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+
+      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.chandana03.financetrackerRN"

@@ -1,8 +1,6 @@
 // SafeAreaView keeps UI away from notch, status bar, and bottom gestures
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { registerForPushNotificationsAsync } from "../../utils/registerForPushNotifications";
-
 
 import {
   View,
@@ -66,7 +64,7 @@ export default function Home() {
   const [userId, setUserId] = useState(null);
 
   // ---------------- LOAD USER & TRANSACTIONS ----------------
-  /*useEffect(() => {
+  useEffect(() => {
     (async () => {
       // Get token from storage
       const token = await AsyncStorage.getItem("token");
@@ -102,55 +100,8 @@ export default function Home() {
     })();
   }, [useAPI]); // Reload when API toggle changes
 
-  */
 
-  // ---------------- LOAD USER, TRANSACTIONS & PUSH NOTIFICATIONS ----------------
-useEffect(() => {
-  const init = async () => {
-    try {
-      //  Register push notifications (only once)
-      await registerForPushNotificationsAsync();
-
-      //  Get token
-      const token = await AsyncStorage.getItem("token");
-
-      if (!token) {
-        Alert.alert("Please login first");
-        router.replace("/login");
-        return;
-      }
-
-      // Decode token safely
-      let decoded;
-      try {
-        decoded = jwtDecode(token);
-      } catch (e) {
-        await AsyncStorage.removeItem("token");
-        router.replace("/login");
-        return;
-      }
-
-      const uid = decoded.id;
-      setUserId(uid);
-
-      // Load transactions
-      if (useAPI) {
-        const data = await fetchTransactions(uid);
-        setTransactions(data || []);
-      } else {
-        const local = await AsyncStorage.getItem("transactions");
-        setTransactions(local ? JSON.parse(local) : []);
-      }
-    } catch (err) {
-      console.log("INIT ERROR:", err);
-      Alert.alert("Failed to initialize app");
-    }
-  };
-
-  init();
-}, [useAPI]);
-
-
+ 
   // ---------------- ADD / UPDATE TRANSACTION ----------------
   const handleAddOrUpdate = async (tx) => {
     if (!userId) return;
@@ -259,3 +210,39 @@ useEffect(() => {
     </SafeAreaView>
   );
 }
+const styles = StyleSheet.create({
+  header: {
+    height: 56,
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+
+  content: {
+    padding: 12,
+    paddingBottom: 40,
+  },
+
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  search: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    padding: 8,
+    marginVertical: 10,
+  },
+});
