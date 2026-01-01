@@ -1,25 +1,40 @@
+// SafeAreaView keeps UI away from notch, status bar, and bottom gestures
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import {
   View,
   ScrollView,
   Text,
   Switch,
   TextInput,
-  Button,
   Alert,
+  Button,
   StyleSheet,
+  Platform,
 } from "react-native";
 
+// React hooks for state and lifecycle
 import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { jwtDecode } from "jwt-decode";
-import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
 
+// AsyncStorage for saving token and offline transactions
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Expo Router for navigation
+import { useRouter } from "expo-router";
+
+// Used to decode JWT token and get user ID
+import { jwtDecode } from "jwt-decode";
+
+// Expo Notifications
+import * as Notifications from "expo-notifications";
+
+// Form component for adding/updating transactions
 import TransactionForm from "../../components/TransactionForm";
+
+// Card component to display each transaction
 import TransactionCard from "../../components/TransactionCard";
-import { useApiToggle } from "../../contexts/ApiToggleContext";
+
+// API functions for backend operations
 import {
   fetchTransactions,
   addTransactionAPI,
@@ -27,32 +42,10 @@ import {
   deleteTransactionAPI,
 } from "../../services/api";
 
-// Register push notifications and get Expo push token
+// Context to toggle between API mode and local storage mode
+import { useApiToggle } from "../../contexts/ApiToggleContext";
 
-
-/*async function registerForPushNotificationsAsync() {
-  if (Platform.OS === "web") return;
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== "granted") {
-    Alert.alert("Notification permission not granted");
-    return;
-  }
-
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log("PUSH TOKEN:", token);
-
-  // Android channel setup
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-    });
-  }
-
-  return token;
-}
-*/
-
+// ---------------- PUSH NOTIFICATIONS ----------------
 async function registerForPushNotificationsAsync() {
   if (Platform.OS === "web") return;
 
@@ -86,7 +79,6 @@ export default function Home() {
   const router = useRouter();
   const { useAPI, setUseAPI } = useApiToggle();
 
-  // ---------------- STATE ----------------
   const [transactions, setTransactions] = useState([]);
   const [editTx, setEditTx] = useState(null);
   const [search, setSearch] = useState("");
@@ -96,13 +88,13 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem("token");
+
       if (!token) {
         Alert.alert("Please login first");
         router.replace("/login");
         return;
       }
 
-      // Decode JWT to get user ID
       const decoded = jwtDecode(token);
       const uid = decoded.id;
       setUserId(uid);
@@ -121,34 +113,25 @@ export default function Home() {
     })();
   }, [useAPI]);
 
-  // ---------------- PUSH NOTIFICATIONS ----------------
- 
-    const scheduleNotification = async () => {
-      await registerForPushNotificationsAsync();
-      await Notifications.scheduleNotificationAsync({
-        content: { title: "Finance Tracker", body: "This is your test notification" },
-        trigger: { seconds: 5 },
-      });
-    };
+  // ---------------- SCHEDULE NOTIFICATION ----------------
+  const scheduleNotification = async () => {
+    if (Platform.OS === "web") return; // <-- prevent web crash
 
-      // ---------------- PUSH NOTIFICATIONS ----------------
-  
-    const scheduleNotification = async () => {
-      await registerForPushNotificationsAsync();
-      await Notifications.scheduleNotificationAsync({
-        content: { title: "Finance Tracker", body: "This is your test notification" },
-        trigger: { seconds: 5 },
-      });
-    };
-      
+    await registerForPushNotificationsAsync();
 
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Finance Tracker",
+        body: "This is your test notification",
+      },
+      trigger: { seconds: 5 },
+    });
+  };
 
-
-    useEffect(() => {
-      scheduleNotification();
-    }, []);
-  
-  
+  // Run once on mount (only mobile)
+  useEffect(() => {
+    if (Platform.OS !== "web") scheduleNotification();
+  }, []);
 
   // ---------------- ADD / UPDATE TRANSACTION ----------------
   const handleAddOrUpdate = async (tx) => {
@@ -176,8 +159,8 @@ export default function Home() {
         await AsyncStorage.setItem("transactions", JSON.stringify(list));
         setEditTx(null);
       }
-    } catch {
-      Alert.alert("Transaction failed");
+    } catch (err) {
+      Alert.alert("Failed to save transaction");
     }
   };
 
@@ -209,13 +192,13 @@ export default function Home() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Finance Tracker</Text>
         <Button title="Sign Out" onPress={handleSignOut} color="#ff3b30" />
       </View>
 
-      {/* Main Content */}
+      {/* MAIN CONTENT */}
       <ScrollView contentContainerStyle={styles.content}>
         {/* API Toggle */}
         <View style={styles.toggleRow}>
@@ -228,24 +211,24 @@ export default function Home() {
 
         {/* Search Input */}
         <TextInput
-          placeholder="Search by category or description"
+          placeholder="Search"
           value={search}
           onChangeText={setSearch}
           style={styles.search}
         />
 
-        {/* Transaction List */}
-        {filteredTransactions.map((tx) => (
+        {/* Transactions List */}
+        {filteredTransactions.map((tx, index) => (
           <TransactionCard
-            key={tx._id}
+            key={index}
             transaction={tx}
             onEdit={() => setEditTx(tx)}
             onDelete={() => handleDelete(tx)}
           />
         ))}
 
-        <Button title="schedulecNotification" onPress={scheduleNotification} />
-
+        {/* Schedule Test Notification */}
+        <Button title="schedule Notification" onPress={scheduleNotification} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -256,13 +239,18 @@ const styles = StyleSheet.create({
   header: {
     height: 56,
     backgroundColor: "#007AFF",
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
   content: { padding: 12, paddingBottom: 40 },
-  toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   search: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 8, marginVertical: 10 },
 });
