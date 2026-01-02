@@ -1,6 +1,5 @@
-// SafeAreaView keeps UI away from notch, status bar, and bottom gestures
-import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
   ScrollView,
@@ -13,28 +12,15 @@ import {
   Platform,
 } from "react-native";
 
-// React hooks for state and lifecycle
 import { useEffect, useState } from "react";
-
-// AsyncStorage for saving token and offline transactions
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Expo Router for navigation
 import { useRouter } from "expo-router";
-
-// Used to decode JWT token and get user ID
-import { jwtDecode } from "jwt-decode";
-
-// Expo Notifications
+import {jwtDecode} from "jwt-decode";
 import * as Notifications from "expo-notifications";
 
-// Form component for adding/updating transactions
 import TransactionForm from "../../components/TransactionForm";
-
-// Card component to display each transaction
 import TransactionCard from "../../components/TransactionCard";
 
-// API functions for backend operations
 import {
   fetchTransactions,
   addTransactionAPI,
@@ -42,14 +28,22 @@ import {
   deleteTransactionAPI,
 } from "../../services/api";
 
-// Context to toggle between API mode and local storage mode
 import { useApiToggle } from "../../contexts/ApiToggleContext";
 
 // ---------------- PUSH NOTIFICATIONS ----------------
 async function registerForPushNotificationsAsync() {
   if (Platform.OS === "web") return;
 
-  let { status: existingStatus } = await Notifications.getPermissionsAsync();
+  // Android channel
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+    });
+  }
+
+  // Request permission
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   if (existingStatus !== "granted") {
@@ -62,19 +56,17 @@ async function registerForPushNotificationsAsync() {
     return;
   }
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log("PUSH TOKEN:", token);
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-    });
+  try {
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    console.log("✅ FCM TOKEN:", tokenData.data); // For backend push notifications
+    return tokenData.data;
+  } catch (e) {
+    console.log("FCM ERROR:", e);
+    Alert.alert("Failed to get FCM token", e.message);
   }
-
-  return token;
 }
 
+// ---------------- HOME COMPONENT ----------------
 export default function Home() {
   const router = useRouter();
   const { useAPI, setUseAPI } = useApiToggle();
@@ -88,13 +80,11 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem("token");
-
       if (!token) {
         Alert.alert("Please login first");
         router.replace("/login");
         return;
       }
-
       const decoded = jwtDecode(token);
       const uid = decoded.id;
       setUserId(uid);
@@ -107,36 +97,68 @@ export default function Home() {
           const local = await AsyncStorage.getItem("transactions");
           setTransactions(local ? JSON.parse(local) : []);
         }
-      } catch (err) {
+      } catch {
         Alert.alert("Failed to load transactions");
       }
     })();
   }, [useAPI]);
 
-  // ---------------- SCHEDULE NOTIFICATION ----------------
-  const scheduleNotification = async () => {
-    if (Platform.OS === "web") return; // <-- prevent web crash
+  // ---------------- REGISTER FOR NOTIFICATIONS ON MOUNT ----------------
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      registerForPushNotificationsAsync();
 
-    await registerForPushNotificationsAsync();
+      // ---------------- DAILY REMINDER ----------------
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Daily Reminder",
+          body: "Don't forget to log today's transactions!",
+        },
+        trigger: {
+          hour: 19,
+          minute: 5,
+          repeats: true,
+          channelId: "default",
+          type: "time",
+        },
+      });
+    }
+  }, []);
 
+  useEffect(() => {
+  const subscription =
+    Notifications.addNotificationReceivedListener(notification => {
+      const { title, body } = notification.request.content;
+      Alert.alert(title, body);
+    });
+
+  return () => subscription.remove();
+}, []);
+
+
+  // ---------------- SCHEDULE TEST NOTIFICATION ----------------
+  const scheduleTestNotification = async () => {
+    console.log("Button Pressed");
+    if (Platform.OS === "web") return;
+
+    console.log("Scheduling notification in 5s...");
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Finance Tracker",
+        title: "Finance Tracker Demo",
         body: "This is your test notification",
       },
-      trigger: { seconds: 5 },
+      trigger: {
+        seconds: 5,
+        channelId: "default",
+        type: "time",
+      },
     });
+    console.log("Notification scheduled ✅");
   };
-
-  // Run once on mount (only mobile)
-  useEffect(() => {
-    if (Platform.OS !== "web") scheduleNotification();
-  }, []);
 
   // ---------------- ADD / UPDATE TRANSACTION ----------------
   const handleAddOrUpdate = async (tx) => {
     if (!userId) return;
-
     const txWithUser = { ...tx, userId };
 
     try {
@@ -144,22 +166,36 @@ export default function Home() {
         if (editTx) {
           await updateTransactionAPI(editTx._id, txWithUser);
           setEditTx(null);
+          // Notification for update
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Transaction Updated",
+              body: `Updated ${tx.category} transaction`,
+            },
+            trigger: { seconds: 1, channelId: "default", type: "time" },
+          });
         } else {
           await addTransactionAPI(txWithUser);
+          // Notification for add
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Transaction Added",
+              body: `Added ${tx.category} transaction of ₹${tx.amount}`,
+            },
+            trigger: { seconds: 1, channelId: "default", type: "time" },
+          });
         }
-
         const data = await fetchTransactions(userId);
         setTransactions(data || []);
       } else {
         const list = editTx
           ? transactions.map((t) => (t === editTx ? txWithUser : t))
           : [...transactions, txWithUser];
-
         setTransactions(list);
         await AsyncStorage.setItem("transactions", JSON.stringify(list));
         setEditTx(null);
       }
-    } catch (err) {
+    } catch {
       Alert.alert("Failed to save transaction");
     }
   };
@@ -174,6 +210,17 @@ export default function Home() {
       const list = transactions.filter((t) => t !== tx);
       setTransactions(list);
       await AsyncStorage.setItem("transactions", JSON.stringify(list));
+    }
+
+    // Notification for delete
+    if (Platform.OS !== "web") {
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Transaction Deleted",
+          body: `Deleted ${tx.category} transaction of ₹${tx.amount}`,
+        },
+        trigger: { seconds: 1, channelId: "default", type: "time" },
+      });
     }
   };
 
@@ -192,24 +239,19 @@ export default function Home() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Finance Tracker</Text>
         <Button title="Sign Out" onPress={handleSignOut} color="#ff3b30" />
       </View>
 
-      {/* MAIN CONTENT */}
       <ScrollView contentContainerStyle={styles.content}>
-        {/* API Toggle */}
         <View style={styles.toggleRow}>
           <Text>Use API</Text>
           <Switch value={useAPI} onValueChange={setUseAPI} />
         </View>
 
-        {/* Add / Edit Transaction Form */}
         <TransactionForm onSubmit={handleAddOrUpdate} initialData={editTx} />
 
-        {/* Search Input */}
         <TextInput
           placeholder="Search"
           value={search}
@@ -217,7 +259,6 @@ export default function Home() {
           style={styles.search}
         />
 
-        {/* Transactions List */}
         {filteredTransactions.map((tx, index) => (
           <TransactionCard
             key={index}
@@ -227,8 +268,10 @@ export default function Home() {
           />
         ))}
 
-        {/* Schedule Test Notification */}
-        <Button title="schedule Notification" onPress={scheduleNotification} />
+        <Button
+          title="Schedule Test Notification"
+          onPress={scheduleTestNotification}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -252,5 +295,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  search: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 8, marginVertical: 10 },
+  search: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    padding: 8,
+    marginVertical: 10,
+  },
 });
