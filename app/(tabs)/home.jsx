@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   search: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#d2d1d1ff",
     borderRadius: 6,
     padding: 8,
     marginVertical: 10,
