@@ -1,50 +1,72 @@
-# Welcome to your Expo app 👋
+# Finance Tracker – Mobile Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## About the Project
+Finance Tracker is a personal finance management mobile application developed using React Native and Expo.
 
-## Get started
+It helps users track their income and expenses, manage transactions and view their financial summary directly from their mobile devices.
 
-1. Install dependencies
+The mobile application connects to the same backend used by the web application.
 
-   ```bash
-   npm install
-   ```
+## Technologies Used
+- React Native
+- Expo
+- JavaScript
+- Expo Router
+- Axios
+- Context API
+- AsyncStorage
+- Expo Notifications
 
-2. Start the app
+## Features
+- User Registration and Login
+- Add Income and Expense Transactions
+- View All Transactions
+- Update and Delete Transactions
+- Search Transactions
+- Filter Transactions
+- Dashboard with Income, Expense and Balance
+- Category-Wise Summary
+- CSV Export
+- Local Data Storage
+- Scheduled Local Notifications
 
-   ```bash
-   npx expo start
-   ```
+## Project Structure
+- `app/` – Application screens and navigation
+- `components/` – Reusable UI components
+- `contexts/` – Shared application state
+- `services/` – API and authentication services
 
-In the output, you'll find options to open the app in a
+## Application Flow
+1. User registers or logs in.
+2. The application communicates with the backend using Axios.
+3. The authentication token is stored locally.
+4. Axios attaches the token to protected API requests.
+5. Users can add, view, update and delete transactions.
+6. The dashboard displays income, expenses and balance.
+7. Users can receive scheduled local reminders.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Backend Connection
+The mobile application connects to the shared Finance Tracker backend:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+`https://finance-tracker-backend-ng8p.onrender.com`
 
-## Get a fresh project
+## Installation and Setup
 
-When you're ready, run:
+1. Clone the repository.
+2. Install dependencies:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+3. Configure the backend API URL if required.
+4. Start the Expo development server:
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+5. Run the application using an emulator or a supported device.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Purpose
+The mobile application makes personal finance management convenient by allowing users to manage transactions from their mobile devices.
